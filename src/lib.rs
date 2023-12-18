@@ -1,16 +1,20 @@
 use std::iter;
 use std::time::Instant;
 
-use winit::window::Window;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::EventLoopBuilder,
+    window::Window,
+    window::WindowBuilder,
+};
 
 use wgpu::util::DeviceExt;
 
-pub struct State {
+struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
-    pub size: winit::dpi::PhysicalSize<u32>,
     render_pipeline: wgpu::RenderPipeline,
 
     uniform: Uniform,
@@ -45,7 +49,11 @@ impl Uniform {
 }
 
 impl State {
-    pub async fn new(window: Window) -> Self {
+    async fn new(
+        window: Window,
+        frag_shader_desc: wgpu::ShaderModuleDescriptor<'_>,
+        vert_shader_desc: wgpu::ShaderModuleDescriptor<'_>,
+    ) -> Self {
         let size = window.inner_size();
 
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
@@ -78,7 +86,7 @@ impl State {
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Rgba8Unorm,
+            format: wgpu::TextureFormat::Bgra8Unorm,
             width: size.width,
             height: size.height,
             present_mode: wgpu::PresentMode::Fifo,
@@ -120,10 +128,8 @@ impl State {
             label: Some("Uniform Bind Group"),
         });
 
-        let frag_shader =
-            device.create_shader_module(wgpu::include_wgsl!("shader.wgsl"));
-        let vert_shader =
-            device.create_shader_module(wgpu::include_wgsl!("vertex.wgsl"));
+        let frag_shader = device.create_shader_module(frag_shader_desc);
+        let vert_shader = device.create_shader_module(vert_shader_desc);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -172,7 +178,6 @@ impl State {
             device,
             queue,
             config,
-            size,
             render_pipeline,
 
             uniform,
@@ -194,9 +199,8 @@ impl State {
         );
     }
 
-    pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
-            self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
             self.uniform.resolution = [new_size.width as f32, new_size.height as f32];
@@ -204,7 +208,7 @@ impl State {
         }
     }
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
         self.update();
 
         let output = self.surface.get_current_texture()?;
@@ -251,4 +255,40 @@ impl State {
 
         Ok(())
     }
+}
+
+pub async fn run(
+    width: u32,
+    height: u32,
+    frag_shader_desc: wgpu::ShaderModuleDescriptor<'_>,
+    vert_shader_desc: wgpu::ShaderModuleDescriptor<'_>,
+) -> Result<(), impl std::error::Error> {
+    let event_loop = EventLoopBuilder::new().build()?;
+
+    event_loop.listen_device_events(winit::event_loop::DeviceEvents::Never);
+    event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+
+    let window = WindowBuilder::new()
+        .with_title("Shader-rs")
+        .with_inner_size(winit::dpi::PhysicalSize::new(width, height))
+        .build(&event_loop)?;
+
+    let state_window_id = window.id();
+
+    let mut state = State::new(window, frag_shader_desc, vert_shader_desc).await;
+
+    event_loop.run(move |event, elwt| match event {
+        Event::WindowEvent { event, window_id } if window_id == state_window_id => match event {
+            WindowEvent::CloseRequested => elwt.exit(),
+            WindowEvent::Resized(physical_size) => state.resize(physical_size),
+            _ => (),
+        },
+
+        Event::AboutToWait => match state.render() {
+            Ok(_) => {}
+            _ => elwt.exit(),
+        },
+
+        _ => (),
+    })
 }

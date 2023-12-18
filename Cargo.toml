@@ -3,10 +3,6 @@ name = "shader-rs"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "shader-rs"
-path = "src/main.rs"
-
 [dependencies]
 log = "0.4"
 wgpu = "0.18"

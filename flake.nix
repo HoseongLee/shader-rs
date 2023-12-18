@@ -7,7 +7,10 @@
   outputs = { self, nixpkgs, naersk }:
     let
       system = "x86_64-linux";
+
       pkgs = import nixpkgs { inherit system; };
+      lib = pkgs.lib;
+
       naersk' = pkgs.callPackage naersk { };
 
       libs = with pkgs; [
@@ -26,16 +29,46 @@
         cargo
         rustfmt
 
+        ffmpeg
+
         vulkan-tools
         vulkan-headers
       ];
+
+      examples = [
+        "tutorial"
+      ];
+
+      defineExample = pname: naersk'.buildPackage {
+        src = ./.;
+        pname = pname;
+
+        overrideMain = x: {
+          preConfigure = ''
+            cargo_build_options="$cargo_build_options --example $pname"
+          '';
+        };
+      };
+
+      examplePackages =
+        lib.listToAttrs
+          (
+            lib.lists.forEach
+              examples
+              (pname:
+                {
+                  name = pname;
+                  value = defineExample pname;
+                }
+              )
+          ) //
+        { default = defineExample "tutorial"; };
+
     in
     {
       formatter.${system} = pkgs.nixpkgs-fmt;
 
-      packages.${system}.default = naersk'.buildPackage {
-        src = ./.;
-      };
+      packages.${system} = examplePackages;
 
       devShells.${system}.default = pkgs.mkShell rec {
         buildInputs = libs ++ tools;
