@@ -62,7 +62,7 @@
                 }
               )
           ) //
-        { default = defineExample "tutorial"; };
+        { default = defineExample "snow"; };
 
     in
     {
@@ -74,10 +74,6 @@
         buildInputs = libs ++ tools;
 
         LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";
-
-        shellHook = ''
-          zsh
-        '';
       };
     };
 }
