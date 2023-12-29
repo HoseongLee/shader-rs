@@ -8,34 +8,32 @@ var<uniform> uniforms: Uniforms;
 
 @fragment
 fn fs_main(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {
-    let graident = pos.y / uniforms.resolution.y * 0.4;
-
     var snow = 0.0;
 
-    for (var k = 0.0; k < 6.0; k=k+1.0) {
-        for (var i = 0.0; i < 2.0; i=i+1.0) {
-            let cellSize = 2.0 + i * 3.0;
-            let downSpeed = 0.3 + (sin(uniforms.time * 0.4 + k + i * 20.0) + 1.0) * 0.00008;
+    let t = uniforms.time;
+    let uv = pos.xy / uniforms.resolution.x ;
+    let gradient = pos.y / uniforms.resolution.y + 0.3;
 
-            let uv = (pos.xy / uniforms.resolution.x);// + vec2(0.01*sin((uniforms.time+k*6185.0)*0.6+i)*(5.0/i), -downSpeed*(uniforms.time+k*1352.0)*(1.0/i));
-            let uvStep = ceil(uv * cellSize - 0.5) / cellSize;
+    let c = cos(t * 2.5);
+    let s = sin(t * 2.5);
 
-            let x = fract(sin(dot(uvStep, vec2(12.9898+k*12.0,78.233+k*315.156)))* 43758.5453+k*12.0) - 0.5;
-            let y = fract(sin(dot(uvStep, vec2(62.2364+k*23.0,94.674+k*95.0)))* 62159.8432+k*12.0) - 0.5;
+    for (var k = 0.7; k < 6.0; k = k + 1.3) {
+        let x = cos(k + t);
+        let y = sin(k + t);
 
-            let randomMagnitude1 = sin(uniforms.time * 2.5) * 0.7 / cellSize;
-            let randomMagnitude2 = cos(uniforms.time * 2.5) * 0.7 / cellSize;
+        for (var i = 1.0; i < 5.0; i = i + 1.0) {
+            let cellSize = 2.0 + 2.0 * i;
 
-            let d = 5.0 * distance(uvStep + vec2(x * sin(y), y) * randomMagnitude1 + vec2(y, x) * randomMagnitude2, uv.xy);
+            let uvShifted = uv - vec2(sin(k + t) * 0.05, t - cos(k + t) * 0.3) / i;
+            let uvStep = ceil(uvShifted * cellSize - 0.5) / cellSize;
 
-            let omiVal = fract(sin(dot(uvStep, vec2(32.4691, 94.615))) * 31572.1684);
+            if fract(sin(dot(uvStep, vec2(17., 19.))) * 129.) < 0.1 {
+                let d = distance(uvStep + vec2(x * c, y * s) * 0.7 / cellSize, uvShifted) * cellSize;
 
-            if (omiVal < 0.08) {
-                let newd = (x+1.0)*0.4*clamp(1.9-d*(15.0+(x*6.3))*(cellSize/1.4),0.0,1.0);
-                snow += newd;
+                snow += clamp(d, 0., 1.);
             }
         }
     }
 
-    return vec4(snow) + graident * vec4(0.4, 0.8, 1.0, 0.0);
+    return vec4(snow, snow, snow, 1.0) + 0.2 * gradient * vec4(0.4, 0.8, 1.0, 0.0);
 }

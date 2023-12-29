@@ -31,12 +31,15 @@
 
         ffmpeg
 
+        directx-headers
+
         vulkan-tools
         vulkan-headers
       ];
 
       examples = [
         "tutorial"
+        "snow-shadertoy"
       ];
 
       defineExample = pname: naersk'.buildPackage {
@@ -73,7 +76,7 @@
       devShells.${system}.default = pkgs.mkShell rec {
         buildInputs = libs ++ tools;
 
-        LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";
+        LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}:/usr/lib/wsl/lib";
       };
     };
 }

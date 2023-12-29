@@ -1,4 +1,6 @@
 /target
 
 /.direnv
+/images
+*.mp4
 result
