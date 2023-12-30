@@ -182,7 +182,7 @@ pub fn create_render_pipeline(
             entry_point: "fs_main",
             targets: &[Some(wgpu::ColorTargetState {
                 format: if headless {
-                    wgpu::TextureFormat::Rgba8UnormSrgb
+                    wgpu::TextureFormat::Rgba8Unorm
                 } else {
                     wgpu::TextureFormat::Bgra8Unorm
                 },
@@ -219,12 +219,7 @@ pub fn create_render_pass<'a>(
             view,
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color {
-                    r: 0.0,
-                    g: 0.0,
-                    b: 0.0,
-                    a: 1.0,
-                }),
+                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                 store: wgpu::StoreOp::Store,
             },
         })],
@@ -258,7 +253,7 @@ pub fn create_texture_desc(texture_size: u32) -> wgpu::TextureDescriptor<'static
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         view_formats: &[],
-        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+        format: wgpu::TextureFormat::Rgba8Unorm,
         usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::RENDER_ATTACHMENT,
         label: None,
     }
